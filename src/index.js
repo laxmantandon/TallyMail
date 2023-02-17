@@ -1,0 +1,127 @@
+const { app, Menu, Tray, nativeImage, BrowserWindow, dialog } = require('electron');
+const path = require('path');
+
+const { app: express, server } = require('./server')
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+const createTray = () => {
+  const iconPath = path.join(__dirname, "./icon/icon.png")
+  const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 24, height: 24 })
+  const tray = new Tray(trayIcon)
+  const menuTemplate = [
+    {
+      label: null,
+      enabled: false
+    },
+    {
+      label: 'Start Server',
+      enabled: true,
+      click: () => {
+        // try {
+        //   process = exec(' npm run start_process');
+        // } catch (e) {
+
+        // }
+        // menuTemplate[1].enabled = false
+        // menuTemplate[2].enabled = true
+        // buildTrayMenu(menuTemplate)
+
+        server.listen(express.get('Port'), express.get('Host'), () => {
+          menuTemplate[1].enabled = false
+          menuTemplate[2].enabled = true
+          buildTrayMenu(menuTemplate)
+        })
+      }
+    },
+    {
+      label: 'Stop Server',
+      enabled: false,
+      click: () => {   
+        
+        server.close(e => {
+          console.log('Connection Closed', e)
+          menuTemplate[1].enabled = true
+          menuTemplate[2].enabled = false
+          buildTrayMenu(menuTemplate)
+        })
+
+        // Kill npm run start_process 
+        // exec("npx kill-port 35040");
+        // menuTemplate[1].enabled = true
+        // menuTemplate[2].enabled = false
+        // buildTrayMenu(menuTemplate)
+      }
+    },
+    {
+      label: 'About',
+      click: () => {
+        dialog.showMessageBox({
+          title: 'ESD',
+          message: "ESD 1.03", //1.02
+          detail: "Developed and Maintained",
+          buttons: ['OK'],
+          icon: "./icon/stop.png"
+        })
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => app.quit()
+    }
+  ]
+
+
+  const buildTrayMenu = menu => {
+    let lblStatus = "Inactive"
+    let iconStatus = "./icon/stop.png"
+    if (!menu[1].enabled) {
+      lblStatus = "Active"
+      iconStatus = "./icon/start.png"
+    }
+
+    const iconStatusPath = path.join(__dirname, iconStatus)
+
+    menu[0].label = `"Service Status " ${lblStatus}`
+    menu[0].icon = nativeImage.createFromPath(iconStatusPath).resize({ width: 24, height: 24 })
+
+    const trayMenu = Menu.buildFromTemplate(menu)
+    tray.setContextMenu(trayMenu)
+  }
+
+  buildTrayMenu(menuTemplate)
+
+  // process = exec('npm run start_process');
+  // menuTemplate[1].enabled = false
+  // menuTemplate[2].enabled = true
+  // buildTrayMenu(menuTemplate)
+
+  server.listen(express.get('Port'), express.get('Host'), () => {
+    menuTemplate[1].enabled = false
+    menuTemplate[2].enabled = true
+    buildTrayMenu(menuTemplate)
+  })
+
+}
+
+app.on('ready', createTray);
+
+app.on('activate', () => {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and import them here.
+app.on('quit', () => {
+  server.close()
+  // process.kill();
+})
