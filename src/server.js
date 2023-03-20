@@ -39,6 +39,7 @@ app.post('/TallyMail', (req, res) => {
     const mailOptions = {
         from: payload["from_email"], // sender address
         to: payload["to_email"], // list of receivers
+        cc: payload["cc_email"],
         subject: payload["subject"], // Subject line
         html: payload["body"],// plain text body,
         attachments: [
